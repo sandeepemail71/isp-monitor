@@ -1,0 +1,18 @@
+[Unit]
+Description=HTTP Connectivity Check Daemon
+After=network-online.target influxdb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__PI_USER__
+WorkingDirectory=__MONITORING_DIR__
+ExecStart=__MONITORING_DIR__/venv/bin/python isp/http_check.py
+Restart=always
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=http-check
+
+[Install]
+WantedBy=multi-user.target

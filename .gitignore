@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+data/
+*.db
+.alert_state.json
+
+# Secrets / local config overrides
+config.local.yaml
+.env
+
+# Claude Code
+.claude/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/

@@ -1,0 +1,371 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_INFLUXDB",
+      "label": "InfluxDB",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "influxdb",
+      "pluginName": "InfluxDB"
+    }
+  ],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" },
+    { "type": "datasource", "id": "influxdb", "name": "InfluxDB", "version": "1.0.0" },
+    { "type": "panel", "id": "timeseries", "name": "Time series", "version": "" },
+    { "type": "panel", "id": "stat", "name": "Stat", "version": "" },
+    { "type": "panel", "id": "table", "name": "Table", "version": "" }
+  ],
+  "annotations": { "list": [] },
+  "description": "Airtel Fiber ISP monitoring — latency, speed, outages, HTTP checks",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Current Latency (8.8.8.8)",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+          "query": "SELECT last(\"rtt_ms\") FROM \"ping_stats\" WHERE (\"target\" = '8.8.8.8') AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 80 },
+              { "color": "red", "value": 200 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Current Latency (1.1.1.1)",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+          "query": "SELECT last(\"rtt_ms\") FROM \"ping_stats\" WHERE (\"target\" = '1.1.1.1') AND $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 80 },
+              { "color": "red", "value": 200 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Last Download Speed",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+          "query": "SELECT last(\"download_mbps\") FROM \"speedtest\" WHERE $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Mbps",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 20 },
+              { "color": "green", "value": 50 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Uptime (last 24 h)",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+          "query": "SELECT (SUM(\"is_up\") / COUNT(\"is_up\")) * 100 FROM \"ping_stats\" WHERE (\"target\" = '8.8.8.8') AND time > now() - 24h",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 99 },
+              { "color": "green", "value": 99.9 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Latency over Time",
+      "gridPos": { "h": 9, "w": 14, "x": 0, "y": 4 },
+      "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+          "query": "SELECT mean(\"rtt_ms\") FROM \"ping_stats\" WHERE $timeFilter GROUP BY time($__interval), \"target\"::tag fill(null)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A",
+          "alias": "$tag_target"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 8,
+            "spanNulls": false
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 100 },
+              { "color": "red", "value": 300 }
+            ]
+          }
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Packet Loss %",
+      "gridPos": { "h": 9, "w": 10, "x": 14, "y": 4 },
+      "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+          "query": "SELECT mean(\"packet_loss_pct\") FROM \"ping_stats\" WHERE $timeFilter GROUP BY time($__interval), \"target\"::tag fill(null)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A",
+          "alias": "$tag_target"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 20,
+            "spanNulls": false
+          },
+          "color": { "mode": "palette-classic" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 20 }
+            ]
+          }
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Speed Test Results (Download / Upload)",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 17 },
+      "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+          "query": "SELECT mean(\"download_mbps\") AS \"Download\", mean(\"upload_mbps\") AS \"Upload\" FROM \"speedtest\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Mbps",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": true
+          }
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "HTTP Check Response Time",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 25 },
+      "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+          "query": "SELECT mean(\"response_ms\") FROM \"http_check\" WHERE $timeFilter GROUP BY time($__interval), \"url\"::tag fill(null)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A",
+          "alias": "$tag_url"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": { "lineWidth": 1, "fillOpacity": 8, "spanNulls": false }
+        }
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Outage Events",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 25 },
+      "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+          "query": "SELECT \"duration_seconds\" FROM \"outage_events\" WHERE $timeFilter ORDER BY time DESC LIMIT 50",
+          "rawQuery": true,
+          "resultFormat": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "duration_seconds" },
+            "properties": [
+              { "id": "displayName", "value": "Duration (s)" },
+              { "id": "unit", "value": "s" },
+              { "id": "custom.width", "value": 120 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Time" },
+            "properties": [{ "id": "custom.width", "value": 200 }]
+          }
+        ]
+      },
+      "options": {
+        "sortBy": [{ "displayName": "Time", "desc": true }],
+        "footer": { "show": false }
+      }
+    },
+    {
+      "id": 10,
+      "type": "state-timeline",
+      "title": "Internet Up / Down",
+      "description": "Green = UP, Red = DOWN. Based on ping to 8.8.8.8 every 10s.",
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 13 },
+      "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "home-influxdb" },
+          "query": "SELECT mean(\"is_up\") FROM \"ping_stats\" WHERE (\"target\" = '8.8.8.8') AND $timeFilter GROUP BY time($__interval) fill(previous)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A",
+          "alias": "Internet"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "DOWN", "color": "red", "index": 0 },
+                "1": { "text": "UP", "color": "green", "index": 1 }
+              }
+            }
+          ]
+        }
+      },
+      "options": {
+        "mergeValues": true,
+        "showValue": "never",
+        "alignValue": "center",
+        "rowHeight": 0.9,
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "tags": ["isp", "monitoring", "airtel"],
+  "templating": { "list": [] },
+  "time": { "from": "now-24h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "ISP Monitoring",
+  "uid": "isp-monitoring",
+  "version": 1
+}

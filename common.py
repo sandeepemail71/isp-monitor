@@ -71,6 +71,12 @@ def get_logger(name):
     return logger
 
 
+def get_pi_name():
+    """Return the name of this Pi from config (e.g. 'Pi-Home')."""
+    import socket
+    return load_config().get("name") or socket.gethostname()
+
+
 def send_telegram(message):
     """Send an HTML-formatted Telegram message. Returns True on success."""
     cfg = load_config().get("telegram", {})

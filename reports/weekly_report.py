@@ -16,7 +16,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from common import get_influx_client, get_logger, load_config, send_telegram
+from common import get_influx_client, get_logger, load_config, send_telegram, get_pi_name
 
 log = get_logger("weekly_report")
 
@@ -309,12 +309,13 @@ def main():
     text_body = build_text(week_label, speed, outages, latency, http)
 
     downtime_str = f"{outages['total_minutes']:.0f}min" if outages["count"] else "0 outages"
-    subject = f"ISP Report {week_label} | Downtime: {downtime_str}"
+    pi_name = get_pi_name()
+    subject = f"[{pi_name}] ISP Report {week_label} | Downtime: {downtime_str}"
 
     send_email(config, subject, html_body, text_body)
 
     send_telegram(
-        f"<b>Weekly ISP report sent</b>\n"
+        f"<b>[{pi_name}] Weekly ISP report sent</b>\n"
         f"Period: {week_label}\n"
         f"Downtime: {downtime_str}"
     )

@@ -15,8 +15,9 @@
 #    7. Systemd services (ping-monitor, http-check)
 #    8. Cron jobs (speedtest, health-check, weekly-report)
 #    9. Convenience CLI commands
-#   10. InfluxDB 90-day retention policy
-#   11. Final status check
+#   10. Tailscale (install only — run 'sudo tailscale up' after to connect)
+#   11. InfluxDB 90-day retention policy
+#   12. Final status check
 # =============================================================================
 set -euo pipefail
 
@@ -40,7 +41,9 @@ PI_HOME="/home/${PI_USER}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MONITORING_DIR="${PI_HOME}/monitoring"
 INFLUX_DB="home_monitoring"
-PIHOLE_INTERFACE="eth0"
+# Auto-detect active network interface (eth0 for Pi 3B, wlan0 for Pi Zero 2 W, etc.)
+PIHOLE_INTERFACE=$(ip -4 route show default 2>/dev/null | awk '{print $5}' | head -1)
+PIHOLE_INTERFACE="${PIHOLE_INTERFACE:-eth0}"
 
 info "Installing as user: ${PI_USER}"
 info "Monitoring directory: ${MONITORING_DIR}"
@@ -66,11 +69,14 @@ apt-get install -y -q \
 # Service name is 'influxdb' (not 'influxd')
 # ─────────────────────────────────────────────────────────────────────────────
 step "Step 2/11 — InfluxDB 1.8"
-INFLUX_DEB="influxdb_1.8.10_armhf.deb"
+# Detect architecture: armhf (32-bit) or arm64 (64-bit)
+ARCH=$(dpkg --print-architecture)
+info "Detected architecture: ${ARCH}"
+INFLUX_DEB="influxdb_1.8.10_${ARCH}.deb"
 INFLUX_URL="https://dl.influxdata.com/influxdb/releases/${INFLUX_DEB}"
 
 if ! systemctl is-active --quiet influxdb 2>/dev/null; then
-    info "Downloading InfluxDB 1.8.10 (armhf)..."
+    info "Downloading InfluxDB 1.8.10 (${ARCH})..."
     wget -q -O "/tmp/${INFLUX_DEB}" "${INFLUX_URL}"
     dpkg -i "/tmp/${INFLUX_DEB}"
     rm -f "/tmp/${INFLUX_DEB}"
@@ -158,7 +164,26 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STEP 5 — Copy monitoring files & Python virtualenv
+# STEP 5 — Ookla Speedtest CLI
+# ─────────────────────────────────────────────────────────────────────────────
+step "Step 5/12 — Ookla Speedtest CLI"
+if ! command -v speedtest &>/dev/null; then
+    info "Installing Ookla speedtest CLI..."
+    # Force debian/bookworm repo — packagecloud auto-detect fails on raspbian/trixie
+    curl -fsSL https://packagecloud.io/ookla/speedtest-cli/gpgkey \
+        | gpg --dearmor -o /etc/apt/keyrings/ookla-speedtest.gpg
+    echo "deb [signed-by=/etc/apt/keyrings/ookla-speedtest.gpg] \
+https://packagecloud.io/ookla/speedtest-cli/debian/ bookworm main" \
+        > /etc/apt/sources.list.d/ookla_speedtest-cli.list
+    apt-get update -q
+    apt-get install -y -q speedtest
+    info "Ookla speedtest CLI installed."
+else
+    info "Ookla speedtest CLI already installed — skipping."
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 6 — Copy monitoring files & Python virtualenv
 # ─────────────────────────────────────────────────────────────────────────────
 step "Step 5/11 — Monitoring files & Python venv"
 
@@ -341,9 +366,28 @@ chmod +x /usr/local/bin/speedtest-now \
 info "Convenience commands installed: speedtest-now, report-now, monitor-status, menu"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STEP 10 — InfluxDB 90-day retention policy
+# STEP 10 — Tailscale (install + enable, login is manual)
 # ─────────────────────────────────────────────────────────────────────────────
-step "Step 10/11 — InfluxDB retention policy"
+step "Step 10/12 — Tailscale"
+if ! command -v tailscale &>/dev/null; then
+    info "Installing Tailscale..."
+    curl -fsSL https://tailscale.com/install.sh | sh
+    systemctl enable tailscaled
+    systemctl start tailscaled
+    info "Tailscale installed. Run 'sudo tailscale up' after setup to connect."
+else
+    info "Tailscale already installed — skipping."
+    if ! tailscale status &>/dev/null; then
+        info "Tailscale not connected. Run 'sudo tailscale up' to connect."
+    else
+        info "Tailscale status: $(tailscale status --self=false --peers=false 2>/dev/null | head -1 || echo 'connected')"
+    fi
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 11 — InfluxDB 90-day retention policy
+# ─────────────────────────────────────────────────────────────────────────────
+step "Step 11/12 — InfluxDB retention policy"
 influx -execute "CREATE RETENTION POLICY \"ninety_days\" ON \"${INFLUX_DB}\" DURATION 90d REPLICATION 1 DEFAULT" 2>/dev/null || \
     warn "Could not set retention policy — can be set manually later."
 info "90-day retention policy set as default."
@@ -351,9 +395,9 @@ info "90-day retention policy set as default."
 # ─────────────────────────────────────────────────────────────────────────────
 # STEP 11 — Final status check
 # ─────────────────────────────────────────────────────────────────────────────
-step "Step 11/11 — Status check"
+step "Step 12/12 — Status check"
 sleep 3
-for SVC in influxdb grafana-server ping-monitor http-check; do
+for SVC in influxdb grafana-server ping-monitor http-check tailscaled; do
     if systemctl is-active --quiet "${SVC}"; then
         echo -e "  ${GREEN}●${NC} ${SVC}  running"
     else
@@ -382,10 +426,13 @@ echo -e "${YELLOW}  NEXT STEPS:${NC}"
 echo -e "  1. Edit ${MONITORING_DIR}/config.yaml:"
 echo -e "     - Add Telegram bot_token and chat_id"
 echo -e "     - Add Gmail app_password"
-echo -e "  2. Point Deco DNS to this Pi:"
+echo -e "  2. Connect to Tailscale:"
+echo -e "     sudo tailscale up"
+echo -e "     (opens a URL — visit it in your browser to log in)"
+echo -e "  3. Point Deco DNS to this Pi:"
 echo -e "     Deco app > More > Advanced > DHCP Server"
 echo -e "     DNS (Primary) > ${PI_IP}"
-echo -e "  3. Restart services after editing config:"
+echo -e "  4. Restart services after editing config:"
 echo -e "     sudo systemctl restart ping-monitor http-check"
 echo ""
 echo -e "  ${BLUE}Manual commands (run from anywhere):${NC}"

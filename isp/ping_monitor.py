@@ -16,7 +16,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from common import get_influx_client, get_logger, load_config, rate_limited_alert
+from common import get_influx_client, get_logger, load_config, rate_limited_alert, get_pi_name
 
 log = get_logger("ping_monitor")
 _running = True
@@ -101,7 +101,7 @@ def main():
             log.warning(f"OUTAGE STARTED at {time.strftime('%Y-%m-%d %H:%M:%S')}")
             rate_limited_alert(
                 "outage_start",
-                "🔴 <b>Internet outage detected!</b>\n"
+                f"🔴 <b>[{get_pi_name()}] Internet outage detected!</b>\n"
                 f"All targets unreachable.\n"
                 f"Time: {time.strftime('%Y-%m-%d %H:%M:%S')}",
                 cooldown_seconds=300,
@@ -120,7 +120,7 @@ def main():
                 log.error(f"Failed to write outage event: {exc}")
             rate_limited_alert(
                 "outage_end",
-                "✅ <b>Internet restored!</b>\n"
+                f"✅ <b>[{get_pi_name()}] Internet restored!</b>\n"
                 f"Outage duration: {mins}m {secs}s",
                 cooldown_seconds=0,
             )

@@ -14,7 +14,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from common import get_influx_client, get_logger, load_config, rate_limited_alert
+from common import get_influx_client, get_logger, load_config, rate_limited_alert, get_pi_name
 
 log = get_logger("speedtest")
 
@@ -105,7 +105,7 @@ def main():
     if download_mbps < threshold:
         rate_limited_alert(
             "speed_degraded",
-            "⚠️ <b>Speed degraded!</b>\n"
+            f"⚠️ <b>[{get_pi_name()}] Speed degraded!</b>\n"
             f"Download: {download_mbps:.1f} Mbps (threshold: {threshold})\n"
             f"Upload: {upload_mbps:.1f} Mbps\n"
             f"Time: {time.strftime('%Y-%m-%d %H:%M:%S')}",
